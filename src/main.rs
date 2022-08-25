@@ -1,89 +1,86 @@
+mod rox_type;
+mod scanner;
+mod token;
+mod token_type;
+mod expr;
+
 use std::env;
-use std::fmt;
-use std::fs::File;
-use std::io::{self, BufRead, BufReader};
+use std::fmt::Error;
+use std::fs::read_to_string;
+use std::io;
+
+//use token::Token;
+//use token_type::TokenType;
+use scanner::Scanner;
+
+
+#[macro_use]
+extern crate lazy_static;
 
 
 
-fn main() -> io::Result<()> {
+fn main() {
     let mut args = env::args();
-
     if args.len() > 2 {
         println!("Usage: jlox [script]")
     } else if args.len() == 2 {
-        run_file(&args.nth(1).unwrap())?;
+        match run_file(&args.nth(1).unwrap()) {
+            Ok(()) => (),
+            Err(error) => panic!("Problem opening the file: {:?}", error)
+        }
     } else {
-        run_prompt()?;
-    }
+        match run_prompt() {
+            Ok(()) => (),
+            Err(error) => panic!("Prompt failed: {:?}", error)
+        }
 
-    return Ok(());
+    }
 }
 
 // Run source file
-fn run_file(path: &str) -> io::Result<()> {
-    let f = File::open(path)?;
-    let f = BufReader::new(f);
-    for line in f.lines() {
-        run(&line?);
-    }
+fn run_file(path: &str) -> Result<(), io::Error> {
+    let code = read_to_string(path)?;
 
-    return Ok(());
+    match run(&code) {
+        Ok(()) => return Ok(()),
+        Err(e) => panic!("{e}")
+    };
 }
 
 // Interactve shell
-fn run_prompt() -> Result<()> {
+fn run_prompt() -> Result<(), io::Error> {
     let stdin = io::stdin();
     let mut buf = String::new();
-    let mut handle = stdin.lock();
 
     loop {
         print!("> ");
-        stdin.read_line(&mut buf)?;
+        stdin.read_line( &mut buf)?;
         if buf == "c\n" {
             break;
         } else {
-            run(&buf)
+            run(&buf); //handle error?
         }
         buf.drain(..);
     }
     return Ok(());
 }
 
-struct Scanner {}
-
-impl Scanner {
-    pub fn scan_tokens(code: &String) -> Vec<Token> {
-        let tokens = Vec::<Token>::new();
-
-        for segment in code.chars() {
-            let mut token = String::new();
-        }
-        return tokens
-    }
-}
-
 // Run Interpereter
-fn run(code: &String) {
-    let tokens = Scanner::scan_tokens(&code);
+fn run(code: &String) -> Result<(), Error> {
+    let mut scanner = Scanner::new(code);
+    let tokens = scanner.scan_tokens();
     for token in tokens {
         println!("{}", token);
     }
-    print!("{}", code)
+    return Ok(())
 }
 
-struct Token {
-    
-}
-// print out for tokens
-impl fmt::Display for Token {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "twest")
-    }
-}
 
-fn error(line: u8, message: &str){
+// Token enum for scanning
+
+fn error(line: u32, message: &str){
     report(line, "", message)
 }
-fn report(line: u8, location: &str, message: &str) {
+fn report(line: u32, location: &str, message: &str) {
     eprintln!("[line  {}] Error{}: {}", line, location, message)
 }
