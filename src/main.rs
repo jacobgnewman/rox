@@ -18,7 +18,6 @@ use scanner::Scanner;
 extern crate lazy_static;
 
 
-
 fn main() {
     let mut args = env::args();
     if args.len() > 2 {

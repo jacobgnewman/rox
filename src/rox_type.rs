@@ -1,5 +1,4 @@
-
-#[allow(dead_code)]
+#[allow(dead_code)] //boolean
 #[derive(Debug, Clone)]
 pub enum RoxType {
     String(String),
