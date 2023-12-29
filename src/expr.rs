@@ -1,39 +1,32 @@
-use std::rc::Rc;
-use crate::token::Token;
 use crate::rox_type::RoxType;
+use crate::token::Token;
+use std::rc::Rc;
 
 pub enum Expr {
     Binary(Rc<Expr>, Token, Rc<Expr>),
     Literal(RoxType),
     Grouping(Rc<Expr>),
-    Unary(Token,Rc<Expr>)
+    Unary(Token, Rc<Expr>)
 }
 
-impl Expr{
-
-    fn accept(&self) {
-        match *self {
-            Expr::Binary(x, t, y) => String::from("a"),
-            _ => ()
+impl Expr {
+    fn to_string(&self) -> String {
+        match self {
+            Expr::Binary(x, t, y) => expr_paren(t.lexeme.clone(), vec![x, y]),
+            Expr::Literal(x) => x.to_string(),
+            Expr::Grouping(x) => format!("(group {})", x.to_string()),
+            Expr::Unary(t, x) => format!("({} {})", t.lexeme, x.to_string()),
+            _ => panic!("Extreme error"),
         }
-    }
-    fn to_string(&self) -> String{
-        match *self {
-            Expr::Binary(x, t, y) => expr_paren(t.lexeme, vec![x,y]),
-
-            _ => panic!("Extreme error")
-        }
-
     }
 }
 
-fn expr_paren(name: String, exprs: Vec<Rc<Expr>>) -> String {
-    let mut paren = format!("({} ", name);
+fn expr_paren(name: String, exprs: Vec<&Rc<Expr>>) -> String {
+    let mut paren = format!("({}", name);
     for exp in exprs {
-        paren.push_str(expr.)
+        paren.push_str(" ");
+        paren.push_str(&exp.to_string());
     }
-
-
-
-    return  paren;
+    paren.push_str(")");
+    return paren;
 }

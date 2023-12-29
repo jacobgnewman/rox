@@ -6,8 +6,10 @@ use crate::token_type::TokenType;
 use std::collections::HashMap;
 
 
-/* Notes
-- start current & line are usize, max ideal input?
+/*
+Remaining Tasks
+- Proper Error handling of unwraps
+
 */
 
 pub struct Scanner {
@@ -18,24 +20,24 @@ pub struct Scanner {
     line: u32,
 }
 
-lazy_static!{
-    static ref IDENTIFIERS : HashMap<&'static str, TokenType> = HashMap::from([
-        ("and",    TokenType::And),
-        ("class",  TokenType::Class),
-        ("else",   TokenType::Else),
-        ("false",  TokenType::False),
-        ("for",    TokenType::For),
-        ("fun",    TokenType::Fun),
-        ("if",     TokenType::If),
-        ("nil",    TokenType::Nil),
-        ("or",     TokenType::Or),
-        ("print",  TokenType::Print),
+lazy_static! {
+    static ref IDENTIFIERS: HashMap<&'static str, TokenType> = HashMap::from([
+        ("and", TokenType::And),
+        ("class", TokenType::Class),
+        ("else", TokenType::Else),
+        ("false", TokenType::False),
+        ("for", TokenType::For),
+        ("fun", TokenType::Fun),
+        ("if", TokenType::If),
+        ("nil", TokenType::Nil),
+        ("or", TokenType::Or),
+        ("print", TokenType::Print),
         ("return", TokenType::Return),
-        ("super",  TokenType::Super),
-        ("this",   TokenType::This),
-        ("true",   TokenType::True),
-        ("var",    TokenType::Var),
-        ("while",  TokenType::While),
+        ("super", TokenType::Super),
+        ("this", TokenType::This),
+        ("true", TokenType::True),
+        ("var", TokenType::Var),
+        ("while", TokenType::While),
     ]);
 }
 
@@ -153,7 +155,7 @@ impl Scanner {
             .collect::<String>();
         let id = identifier.as_str();
 
-        match IDENTIFIERS.get(id){
+        match IDENTIFIERS.get(id) {
             Some(token_type) => self.add(token_type.clone()), //clone nessicary?
             None => self.add(TokenType::Identifier),
         }
@@ -196,7 +198,6 @@ impl Scanner {
             }
         }
 
-        // TODO: error handle
         let number = self.source[self.start..self.current]
             .iter()
             .collect::<String>()

@@ -5,10 +5,10 @@ use crate::token_type::TokenType;
 
 #[derive(Clone)]
 pub struct Token {
-    token_type: TokenType,
+    pub token_type: TokenType,
     pub lexeme: String,
     line: u32,
-    literal: RoxType,
+    pub literal: RoxType,
 }
 
 impl Token {
