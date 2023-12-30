@@ -2,6 +2,7 @@ use crate::rox_type::RoxType;
 use crate::token::Token;
 use std::rc::Rc;
 
+#[derive(Debug)]
 pub enum Expr {
     Binary(Rc<Expr>, Token, Rc<Expr>),
     Literal(RoxType),
@@ -16,7 +17,6 @@ impl Expr {
             Expr::Literal(x) => x.to_string(),
             Expr::Grouping(x) => format!("(group {})", x.to_string()),
             Expr::Unary(t, x) => format!("({} {})", t.lexeme, x.to_string()),
-            _ => panic!("Extreme error"),
         }
     }
 }

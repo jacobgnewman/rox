@@ -4,8 +4,10 @@ mod rox_type;
 mod scanner;
 mod token;
 mod token_type;
+mod interpreter;
 
 use std::env;
+use std::f32::consts::E;
 use std::fmt::Error;
 use std::fs::read_to_string;
 use std::io;
@@ -55,7 +57,13 @@ fn run_prompt() -> Result<(), io::Error> {
         if buf == "c\n" {
             break;
         } else {
-            run(&buf); //handle error?
+            match run(&buf) {
+                Ok(_) => (),
+                Err(e) => {
+                    println!("{:?}", e);
+                    return Ok(());
+                }
+            }
         }
         buf.drain(..);
     }
@@ -66,10 +74,23 @@ fn run_prompt() -> Result<(), io::Error> {
 fn run(code: &String) -> Result<(), Error> {
     let mut scanner = Scanner::new(code);
     let tokens = scanner.scan_tokens();
-    for token in tokens {
-        println!("{}", token);
-    }
+    //println!("Tokens");
+    //for token in tokens.clone() {
+        //println!("{}", token);
+    //}
     let mut parser = Parser::new(tokens);
+    let result = parser.parse();
+    match result {
+        Ok(exp) => {
+            println!("Valid Expression:");
+            println!("{:?}", exp)
+        },
+        Err(e) => {
+            println!("Invalid Expression:");
+            println!("{:?}", e)
+        }
+    }
+    
     return Ok(());
 }
 
