@@ -6,12 +6,12 @@ mod token;
 mod token_type;
 mod interpreter;
 
-use std::env;
-use std::f32::consts::E;
+use std::{env, result};
 use std::fmt::Error;
 use std::fs::read_to_string;
 use std::io;
 
+use interpreter::Interpreter;
 use parser::Parser;
 use scanner::Scanner;
 
@@ -20,34 +20,39 @@ use scanner::Scanner;
 extern crate lazy_static;
 
 fn main() {
+    let mut interpreter = Interpreter::new();
     let mut args = env::args();
     if args.len() > 2 {
         println!("Usage: jlox [script]")
     } else if args.len() == 2 {
-        match run_file(&args.nth(1).unwrap()) {
+        let path =  &args.nth(1).expect("failed to get path argument");
+        match run_file(path, &mut interpreter) {
             Ok(()) => (),
             Err(error) => panic!("Problem opening the file: {:?}", error),
         }
     } else {
-        match run_prompt() {
+        match run_prompt(&mut interpreter) {
             Ok(()) => (),
             Err(error) => panic!("Prompt failed: {:?}", error),
         }
     }
+    if interpreter.had_runtime_error {
+        std::process::exit(70);
+    }
 }
 
 // Run source file
-fn run_file(path: &str) -> Result<(), io::Error> {
+fn run_file(path: &str, interpreter: &mut Interpreter) -> Result<(), io::Error> {
     let code = read_to_string(path)?;
 
-    match run(&code) {
+    match run(&code, interpreter) {
         Ok(()) => return Ok(()),
         Err(e) => panic!("{e}"),
     };
 }
 
 // Interactve shell
-fn run_prompt() -> Result<(), io::Error> {
+fn run_prompt(interpreter: &mut Interpreter) -> Result<(), io::Error> {
     let stdin = io::stdin();
     let mut buf = String::new();
 
@@ -57,7 +62,7 @@ fn run_prompt() -> Result<(), io::Error> {
         if buf == "c\n" {
             break;
         } else {
-            match run(&buf) {
+            match run(&buf, interpreter) {
                 Ok(_) => (),
                 Err(e) => {
                     println!("{:?}", e);
@@ -71,25 +76,21 @@ fn run_prompt() -> Result<(), io::Error> {
 }
 
 // Run Interpereter
-fn run(code: &String) -> Result<(), Error> {
+fn run(code: &String, interpreter: &mut Interpreter) -> Result<(), Error> {
+
     let mut scanner = Scanner::new(code);
     let tokens = scanner.scan_tokens();
-    //println!("Tokens");
-    //for token in tokens.clone() {
-        //println!("{}", token);
-    //}
+
     let mut parser = Parser::new(tokens);
     let result = parser.parse();
-    match result {
-        Ok(exp) => {
-            println!("Valid Expression:");
-            println!("{:?}", exp)
-        },
-        Err(e) => {
-            println!("Invalid Expression:");
-            println!("{:?}", e)
-        }
+
+    if let Err(parse_err) = result {
+        println!("Parse Error: {:?}", parse_err);
+        return Ok(())
     }
+    let result = result.unwrap();
+
+    interpreter.interpret(result);
     
     return Ok(());
 }

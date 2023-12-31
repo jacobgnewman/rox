@@ -1,5 +1,4 @@
-#[allow(dead_code)] //boolean
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum RoxType {
     String(String),
     Number(f64),

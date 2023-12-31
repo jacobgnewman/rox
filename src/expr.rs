@@ -1,13 +1,12 @@
 use crate::rox_type::RoxType;
 use crate::token::Token;
-use std::rc::Rc;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Expr {
-    Binary(Rc<Expr>, Token, Rc<Expr>),
+    Binary(Box<Expr>, Token, Box<Expr>),
+    Grouping(Box<Expr>),
     Literal(RoxType),
-    Grouping(Rc<Expr>),
-    Unary(Token, Rc<Expr>)
+    Unary(Token, Box<Expr>)
 }
 
 impl Expr {
@@ -21,7 +20,7 @@ impl Expr {
     }
 }
 
-fn expr_paren(name: String, exprs: Vec<&Rc<Expr>>) -> String {
+fn expr_paren(name: String, exprs: Vec<&Box<Expr>>) -> String {
     let mut paren = format!("({}", name);
     for exp in exprs {
         paren.push_str(" ");
