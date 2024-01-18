@@ -1,4 +1,3 @@
-mod expr;
 mod parser;
 mod rox_type;
 mod scanner;
@@ -6,7 +5,7 @@ mod token;
 mod token_type;
 mod interpreter;
 
-use std::{env, result};
+use std::env;
 use std::fmt::Error;
 use std::fs::read_to_string;
 use std::io;
@@ -90,7 +89,10 @@ fn run(code: &String, interpreter: &mut Interpreter) -> Result<(), Error> {
     }
     let result = result.unwrap();
 
-    interpreter.interpret(result);
+    let result = interpreter.interpret(result);
+    if let Err(ie) = result {
+        println!("Interpreter error: {:?}", ie);
+    }
     
     return Ok(());
 }

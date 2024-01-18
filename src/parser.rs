@@ -1,4 +1,3 @@
-use crate::expr::Expr;
 use crate::rox_type::RoxType;
 use crate::token::Token;
 use crate::token_type::TokenType::{self, *};
@@ -16,9 +15,27 @@ pub struct ParseErr {
     pub err_msg: String,
 }
 
-pub type ParseResult = Result<Expr, ParseErr>;
+#[derive(Debug, Clone)]
+pub enum Expr {
+    Assign(Token, Box<Expr>),
+    Binary(Box<Expr>, Token, Box<Expr>),
+    Grouping(Box<Expr>),
+    Literal(RoxType),
+    Unary(Token, Box<Expr>),
+    Variable(Token)
+}
+
+pub enum Stmt {
+    Expression(Box<Expr>),
+    Print(Box<Expr>),
+    Var(Token, Option<Box<Expr>>)
+}
+
+
+pub type ParseExprResult = Result<Expr, ParseErr>;
 
 impl Parser {
+
     pub fn new(list: Vec<Token>) -> Parser {
         Parser {
             tokens: list,
@@ -26,15 +43,65 @@ impl Parser {
         }
     }
 
-    pub fn parse(&mut self) -> ParseResult {
-        self.expression()
+    pub fn parse(&mut self) -> Result<Vec<Stmt>, ParseErr> {
+        let mut statements = Vec::new();
+        while !self.at_end() {
+            statements.push(self.declaration()?)
+        }
+        Ok(statements)
     }
 
-    fn expression(&mut self) -> ParseResult {
+    fn declaration(&mut self) -> Result<Stmt, ParseErr> {
+        let result;
+        if self.match_tokens(&[Var]) {
+            result = self.var_declaration();
+        } else {
+            result = self.statement();
+        }
+        if let Err(e) = result {
+            self.synchronize();
+            return Err(e)
+        }
+        result
+    }
+
+    fn var_declaration(&mut self) -> Result<Stmt, ParseErr> {
+        let name = self.consume(Identifier, "Expect variable name.")?.clone();
+        let mut initalizer = None;
+        if self.match_tokens(&[Equal]) {
+            initalizer = Some(self.expression()?.into());
+        }
+        Ok(Stmt::Var(name, initalizer))
+    }
+
+    fn statement(&mut self) -> Result<Stmt, ParseErr>{
+        if self.match_tokens(&[Print]) {
+            return self.print_statement()
+        }
+        self.expression_statement()
+    }
+
+    fn print_statement(&mut self) -> Result<Stmt, ParseErr> {
+        let val = self.expression()?;
+        self.consume(Semicolon, "Expect ';' after value.")?;
+        Ok(Stmt::Print(val.into()))
+    }
+
+    fn expression_statement(&mut self) -> Result<Stmt, ParseErr> {
+        let val = self.expression()?;
+        self.consume(Semicolon, "Expect ';' after value.")?;
+        Ok(Stmt::Expression(val.into()))
+    }
+
+    fn expression(&mut self) -> ParseExprResult {
         self.equality()
     }
 
-    fn equality(&mut self) -> ParseResult {
+    fn assign(&mut self) -> ParseExprResult {
+        
+    }
+
+    fn equality(&mut self) -> ParseExprResult {
         let mut expr = self.comparison()?;
 
         while self.match_tokens(&[BangEqual, EqualEqual]) {
@@ -45,7 +112,7 @@ impl Parser {
         Ok(expr)
     }
 
-    fn comparison(&mut self) -> ParseResult {
+    fn comparison(&mut self) -> ParseExprResult {
         let mut expr = self.term()?;
         while self.match_tokens(&[Greater, GreaterEqual, Less, LessEqual]) {
             let operator = self.previous().clone();
@@ -55,7 +122,7 @@ impl Parser {
         Ok(expr)
     }
 
-    fn term(&mut self) -> ParseResult {
+    fn term(&mut self) -> ParseExprResult {
         let mut expr = self.factor()?;
         while self.match_tokens(&[Minus, Plus]) {
             let operator = self.previous().clone();
@@ -65,7 +132,7 @@ impl Parser {
         Ok(expr)
     }
 
-    fn factor(&mut self) -> ParseResult {
+    fn factor(&mut self) -> ParseExprResult {
         let mut expr = self.unary()?;
         while self.match_tokens(&[Slash, Star]) {
             let operator = self.previous().clone();
@@ -75,7 +142,7 @@ impl Parser {
         Ok(expr)
     }
 
-    fn unary(&mut self) -> ParseResult {
+    fn unary(&mut self) -> ParseExprResult {
         if self.match_tokens(&[Bang, Minus]) {
             let operator = self.previous().clone();
             let right = self.unary()?;
@@ -84,7 +151,7 @@ impl Parser {
         return self.primary();
     }
 
-    fn primary(&mut self) -> ParseResult {
+    fn primary(&mut self) -> ParseExprResult {
         if self.match_tokens(&[False]) {
             return Ok(Expr::Literal(RoxType::Boolean(true)))
         } 
@@ -97,6 +164,9 @@ impl Parser {
         if self.match_tokens(&[Number, String]) {
             return Ok(Expr::Literal(self.previous().literal.clone()))
         } 
+        if self.match_tokens(&[Identifier]) {
+            return Ok(Expr::Variable(self.previous().clone()));
+        }
         if self.match_tokens(&[LeftParen]) {
             let expr = self.expression()?;
             let rpar = self.consume(RightParen, "Expect ')' after expression.");
@@ -120,9 +190,8 @@ impl Parser {
             if self.previous().token_type == Semicolon {
                 return;
             }
-            match self.peek().token_type {
-                Return => return,
-                _ => (),
+            if let Return = self.peek().token_type {
+                return
             }
 
             self.advance();
@@ -147,10 +216,6 @@ impl Parser {
             }
         }
         return false;
-    }
-
-    fn error(&self, token: &Token, message: &str) {
-        println!("Error: {} \n Token: {}", message, token);
     }
 
     fn check(&mut self, token_type: TokenType) -> bool {
